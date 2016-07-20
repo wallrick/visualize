@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Load c3.css -->
+    <link href="css/c3.css" rel="stylesheet" type="text/css">
+
+    <!-- Load d3.js and c3.js -->
+    <script src="js/d3.js" charset="utf-8"></script>
+    <script src="js/c3.js"></script>
+    <script src="js/jquery.js"></script>
+
+    <!-- Load zabbix wrapper library -->
+    <script src="js/zabbixwrapper.js"></script>
+
+  </head>
+  <body>
+    Hello World<br/>
+    <form>
+      <select name="hosts" id="hosts">
+        <option value="none">None</option>
+      </select>
+    </form>
+
+    <form>
+      <select name="items" id="items">
+        <option value="none">None</option>
+      </select>
+    </form>
+
+    <br/>
+    <div id="chart"></div>
+    <script>
+      $(window).load(function() {
+        zbLoadHosts("#hosts");
+          $("#hosts").unbind().change(loadItems);
+      });
+      function loadItems(hostID) {
+        $("#items option[value!='none']").remove();
+        hostID = $("option:selected", this).val();
+        $.ajax({
+          url: "http://localhost:3000/zabbix/items/" + hostID
+          }).then(function(data) {
+          data.forEach(function(x) {
+            var option = document.createElement("option");
+            option.text = x.name;
+            option.value = x.itemid;
+            $("#items").append(option);
+          });
+          $("#items").unbind().change(graph);
+        });
+      }
+      function graph() {
+        itemID = $("option:selected", this).val();
+        $.ajax({
+          url: "http://localhost:3000/zabbix/history/" + itemID
+          }).then(function(data) {
+          var chart = c3.generate({
+            bindto: '#chart',
+            data: {
+              json: data,
+              x: 'clock',
+              keys: { value: [ 'clock', 'value'] },
+              axis: { x: { type: 'timeseries' } }
+            }
+          });
+        });
+      }
+    </script>
+  </body>
+</html>
